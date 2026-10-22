@@ -524,7 +524,8 @@
     let currentStudentIndex = 0;
     const todayDate = "22-10-2026";
 
-    let messMenu = [
+    // --- LOCAL STORAGE DATA PERSISTENCE INITIALIZATION ---
+    let defaultMessMenu = [
       { day: 'Monday', b: 'Aloo Paratha, Curd', l: 'Dal Makhani, Rice, Roti', s: 'Samosa, Tea', d: 'Mix Veg, Chana Dal, Roti' },
       { day: 'Tuesday', b: 'Poha, Tea', l: 'Kadhi Pakora, Rice', s: 'Biscuit, Coffee', d: 'Aloo Jeera, Dal Fry, Roti' },
       { day: 'Wednesday', b: 'Idli Sambhar', l: 'Rajma Chawal, Salad', s: 'Bread Pakora', d: 'Matar Paneer, Roti, Rice' },
@@ -534,7 +535,7 @@
       { day: 'Sunday', b: 'Uttapam, Chutney', l: 'Special Thali (Biryani)', s: 'Cake, Cold Drink', d: 'Dal Makhani, Ice Cream' }
     ];
 
-    let studentDB = [
+    let defaultStudentDB = [
       {
         id: 'CS-2026-089', name: 'Ronak Singhal', room: '304-B', contact: '+91 9876543210',
         payments: [
@@ -559,15 +560,28 @@
       }
     ];
 
-    let complaints = [
+    let defaultComplaints = [
       { id: 'TKN-101', studentName: 'Ronak Singhal', room: '304-B', category: 'Plumbing', urgency: 'Emergency', description: 'Bathroom tap leaking continuously.', status: 'In Progress', date: '21-10-2026' },
       { id: 'TKN-102', studentName: 'Aarav Sharma', room: '210-A', category: 'Wi-Fi', urgency: 'Medium', description: 'LAN socket speed issue.', status: 'Pending', date: '22-10-2026' }
     ];
 
-    let gatePasses = [
+    let defaultGatePasses = [
       { id: 'GP-401', studentName: 'Ronak Singhal', date: '22-10-2026', returnTime: '08:00 PM', reason: 'Library Outing', status: 'Pending' },
       { id: 'GP-402', studentName: 'Priya Verma', date: '22-10-2026', returnTime: '09:00 PM', reason: 'Medical Checkup', status: 'Approved' }
     ];
+
+    // Load state from localStorage or set defaults
+    let messMenu = JSON.parse(localStorage.getItem('hh_messMenu')) || defaultMessMenu;
+    let studentDB = JSON.parse(localStorage.getItem('hh_studentDB')) || defaultStudentDB;
+    let complaints = JSON.parse(localStorage.getItem('hh_complaints')) || defaultComplaints;
+    let gatePasses = JSON.parse(localStorage.getItem('hh_gatePasses')) || defaultGatePasses;
+
+    function saveData() {
+      localStorage.setItem('hh_messMenu', JSON.stringify(messMenu));
+      localStorage.setItem('hh_studentDB', JSON.stringify(studentDB));
+      localStorage.setItem('hh_complaints', JSON.stringify(complaints));
+      localStorage.setItem('hh_gatePasses', JSON.stringify(gatePasses));
+    }
 
     function handleStudentLogin(e) {
       e.preventDefault();
@@ -714,6 +728,7 @@
         ]
       });
 
+      saveData();
       alert(`Student ${name} (${id}) registered!`);
       e.target.reset();
       renderAdminDashboard();
@@ -729,6 +744,7 @@
         menuItem.l = document.getElementById('editLunch').value;
         menuItem.s = document.getElementById('editSnacks').value;
         menuItem.d = document.getElementById('editDinner').value;
+        saveData();
         renderMessMenuTables();
         alert(`Mess Menu for ${day} updated!`);
       }
@@ -777,6 +793,7 @@
         pendingPay.date = todayDate;
         pendingPay.txnId = 'TXN-20261022-' + Math.floor(100+Math.random()*900);
         
+        saveData();
         updateStudentFeeStats();
         renderPaymentHistory();
         alert("Payment successful! Receipt generated.");
@@ -798,6 +815,7 @@
         date: todayDate
       });
 
+      saveData();
       document.getElementById('complaintForm').reset();
       renderStudentTickets();
       alert("Ticket submitted!");
@@ -872,6 +890,7 @@
         reason: document.getElementById('passReason').value,
         status: 'Pending'
       });
+      saveData();
       renderGatePasses();
       alert("Gate Pass request submitted!");
     }
@@ -988,10 +1007,12 @@
       `).join('');
     }
 
+    // PERSIST STATUS UPDATES TO LOCALSTORAGE
     function updatePassStatus(id, newStatus) {
       const pass = gatePasses.find(g => g.id === id);
       if (pass) {
         pass.status = newStatus;
+        saveData();
         renderAdminDashboard();
         renderGatePasses();
       }
@@ -1001,10 +1022,12 @@
       const t = complaints.find(item => item.id === id);
       if (t) {
         t.status = newStatus;
+        saveData();
         renderAdminDashboard();
       }
     }
 
+    // Initial setup
     loadCurrentStudentData();
     renderMessMenuTables();
   </script>
