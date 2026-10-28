@@ -35,13 +35,14 @@
     .btn-toggle:hover { background: #f59e0b; }
 
     .tab-bar { background: white; border-bottom: 1px solid var(--border); padding: 0.5rem 2rem; display: flex; gap: 1rem; overflow-x: auto; }
-    .tab-btn { padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-btn { padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
     main { max-width: 1200px; margin: 1.5rem auto; padding: 0 1.5rem; width: 100%; flex-grow: 1; }
     .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
     .grid-main { display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; }
     @media (max-width: 900px) { .grid-main { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { header { padding: 0.8rem 1rem; } .tab-bar { padding: 0.5rem 1rem; } .role-badge { display: none; } }
 
     .card { background: var(--card-bg); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); margin-bottom: 1.5rem; }
     .profile-card { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
@@ -66,6 +67,8 @@
 
     .btn-logout { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: background 0.2s; }
     .btn-logout:hover { background: #fca5a5; }
+    .btn-delete { background: var(--danger); color: white; border: none; padding: 4px 10px; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: background 0.2s; }
+    .btn-delete:hover { background: #dc2626; }
 
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 6px; }
@@ -108,6 +111,10 @@
       border: 1px solid var(--border);
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
     }
+    .role-switch { display: flex; gap: 8px; background: #f1f5f9; padding: 5px; border-radius: 10px; margin-bottom: 1.2rem; }
+    .role-switch button { flex: 1; border: none; background: none; padding: 9px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; transition: all 0.2s; }
+    .role-switch button.active { background: var(--primary); color: white; }
+    .login-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; padding: 8px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; margin-bottom: 1rem; }
 
     @media print {
       body * { visibility: hidden; }
@@ -128,60 +135,74 @@
         <p>Smart Campus Portal</p>
       </div>
     </div>
-    <div class="header-actions">
-      <div class="role-badge">Viewing as: <strong id="currentRoleText">Student</strong></div>
-      <button id="toggleRoleBtn" onclick="toggleRole()" class="btn-toggle">Switch to Warden View</button>
+    <div class="header-actions hidden" id="headerActions">
+      <div class="role-badge">Logged in as: <strong id="currentRoleText">Student</strong></div>
+      <button onclick="logout()" class="btn-toggle">Logout</button>
     </div>
   </header>
 
   <!-- NAVIGATION TABS -->
-  <div class="tab-bar" id="navigationTabBar">
-    <button class="tab-btn active student-tab" onclick="switchStudentTab('s-dashboard')">Dashboard</button>
-    <button class="tab-btn student-tab" onclick="switchStudentTab('s-payments')">Fee & Payments</button>
-    <button class="tab-btn student-tab" onclick="switchStudentTab('s-gatepass')">Gate Pass</button>
-    <button class="tab-btn student-tab" onclick="switchStudentTab('s-mess')">7-Day Mess Menu</button>
+  <div class="tab-bar hidden" id="navigationTabBar">
+    <button class="tab-btn active student-tab hidden" onclick="switchStudentTab('s-dashboard', this)">Dashboard</button>
+    <button class="tab-btn student-tab hidden" onclick="switchStudentTab('s-payments', this)">Fee & Payments</button>
+    <button class="tab-btn student-tab hidden" onclick="switchStudentTab('s-gatepass', this)">Gate Pass</button>
+    <button class="tab-btn student-tab hidden" onclick="switchStudentTab('s-mess', this)">7-Day Mess Menu</button>
 
-    <button class="tab-btn warden-tab hidden active" onclick="switchWardenTab('w-dashboard')">Warden Overview</button>
-    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-gatepass')">Gate Pass Approvals</button>
-    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-fee')">Fee Directory & Print</button>
-    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-mess')">Update Mess Menu</button>
+    <button class="tab-btn warden-tab hidden active" onclick="switchWardenTab('w-dashboard', this)">Warden Overview</button>
+    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-gatepass', this)">Gate Pass Approvals</button>
+    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-fee', this)">Fee Directory & Print</button>
+    <button class="tab-btn warden-tab hidden" onclick="switchWardenTab('w-mess', this)">Update Mess Menu</button>
   </div>
 
   <main>
-    <!-- STUDENT LOGIN SCREEN -->
-    <div id="studentLoginView" class="hidden">
+    <!-- LOGIN SCREEN (Student + Warden) -->
+    <div id="loginView">
       <div class="login-box">
         <div style="text-align:center; margin-bottom:1.5rem;">
           <div class="logo-box" style="margin:0 auto 10px; width:50px; height:50px; font-size:24px;">H</div>
-          <h2>Student Portal Login</h2>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Enter your credentials to access your hostel account</p>
+          <h2>HostelHub Login</h2>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Enter your credentials to access your account</p>
         </div>
 
-        <form onsubmit="handleStudentLogin(event)">
+        <div class="role-switch">
+          <button type="button" id="roleStudentBtn" class="active" onclick="setLoginRole('student')">🎓 Student</button>
+          <button type="button" id="roleWardenBtn" onclick="setLoginRole('warden')">🛡️ Warden</button>
+        </div>
+
+        <div id="loginError" class="login-error hidden"></div>
+
+        <form onsubmit="handleLogin(event)">
           <div class="form-group">
-            <label>Student ID (Username)</label>
-            <input type="text" id="loginId" required class="form-control" placeholder="e.g. CS-2026-089">
+            <label id="loginIdLabel">Student ID</label>
+            <input type="text" id="loginId" required class="form-control" placeholder="e.g. CS-2026-089" autocomplete="username">
           </div>
           <div class="form-group">
-            <label>Password (Registered Name)</label>
-            <input type="password" id="loginPass" required class="form-control" placeholder="e.g. Ronak Singhal">
+            <label>Password</label>
+            <input type="password" id="loginPass" required class="form-control" placeholder="Enter password" autocomplete="current-password">
           </div>
-          <button type="submit" class="btn-submit">Login to Dashboard</button>
+          <button type="submit" class="btn-submit">Login</button>
         </form>
 
-        <div style="margin-top:1.5rem; background:#f1f5f9; padding:12px; border-radius:10px; font-size:0.75rem; color:var(--text-muted);">
-          <strong>🔑 Demo Credentials:</strong>
+        <div id="demoStudent" style="margin-top:1.5rem; background:#f1f5f9; padding:12px; border-radius:10px; font-size:0.75rem; color:var(--text-muted);">
+          <strong>🔑 Demo Student Credentials:</strong>
           <ul style="margin-left:15px; margin-top:5px;">
-            <li><strong>ID:</strong> CS-2026-089 | <strong>Pass:</strong> Ronak Singhal</li>
-            <li><strong>ID:</strong> CS-2026-090 | <strong>Pass:</strong> Aarav Sharma</li>
-            <li><strong>ID:</strong> CS-2026-091 | <strong>Pass:</strong> Priya Verma</li>
+            <li><strong>ID:</strong> CS-2026-089 | <strong>Pass:</strong> ronak@123</li>
+            <li><strong>ID:</strong> CS-2026-090 | <strong>Pass:</strong> saurabh@123</li>
+            <li><strong>ID:</strong> CS-2026-091 | <strong>Pass:</strong> rohit@123</li>
+            <li><strong>ID:</strong> CS-2026-092 | <strong>Pass:</strong> satyveer@123</li>
+          </ul>
+        </div>
+        <div id="demoWarden" class="hidden" style="margin-top:1.5rem; background:#f1f5f9; padding:12px; border-radius:10px; font-size:0.75rem; color:var(--text-muted);">
+          <strong>🔑 Demo Warden Credentials:</strong>
+          <ul style="margin-left:15px; margin-top:5px;">
+            <li><strong>ID:</strong> WARDEN-01 | <strong>Pass:</strong> admin@123</li>
           </ul>
         </div>
       </div>
     </div>
 
     <!-- STUDENT DASHBOARD VIEW -->
-    <div id="studentView">
+    <div id="studentView" class="hidden">
 
       <!-- DASHBOARD TAB -->
       <div id="s-dashboard" class="student-content">
@@ -190,12 +211,12 @@
             <div style="display:flex; align-items:center; gap:1rem;">
               <div class="avatar" id="sProfileAvatar">RS</div>
               <div class="profile-info">
-                <h2 id="sProfileName">Ronak Singhal</h2>
-                <p id="sProfileRoom">Room 304 • Block B</p>
-                <span class="tag" id="sProfileId">ID: CS-2026-089</span>
+                <h2 id="sProfileName">Student</h2>
+                <p id="sProfileRoom">Room</p>
+                <span class="tag" id="sProfileId">ID</span>
               </div>
             </div>
-            <button onclick="studentLogout()" class="btn-logout" title="Logout">Logout</button>
+            <button onclick="logout()" class="btn-logout" title="Logout">Logout</button>
           </div>
 
           <div class="card fee-card" style="margin-bottom:0;">
@@ -204,13 +225,13 @@
                 <span class="fee-title">Fee Summary Tracker</span>
                 <span id="feeBadge" class="badge-status badge-unpaid">Dues Pending</span>
               </div>
-              <div class="fee-amount" id="feeAmountText">₹12,500</div>
+              <div class="fee-amount" id="feeAmountText">₹0</div>
             </div>
-            
+
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px; display:flex; justify-content:space-between; border-top:1px dashed var(--border); padding-top:6px;">
-              <span>Total: <strong id="feeTotalText" style="color:var(--text-main);">₹37,500</strong></span>
-              <span>Paid: <strong id="feePaidText" style="color:var(--success);">₹25,000</strong></span>
-              <span>Left: <strong id="feeLeftText" style="color:var(--danger);">₹12,500</strong></span>
+              <span>Total: <strong id="feeTotalText" style="color:var(--text-main);">₹0</strong></span>
+              <span>Paid: <strong id="feePaidText" style="color:var(--success);">₹0</strong></span>
+              <span>Left: <strong id="feeLeftText" style="color:var(--danger);">₹0</strong></span>
             </div>
 
             <div class="fee-footer">
@@ -221,9 +242,7 @@
 
           <div class="card" style="margin-bottom:0;">
             <span class="fee-title">Hostel Notice Board</span>
-            <div id="noticeBoardContainer" style="background:#fffbeb; border:1px solid #fde68a; padding:10px; border-radius:8px; font-size:0.8rem; color:#92400e; margin-top:8px;">
-              <strong>📢 [22-10-2026]:</strong> Water maintenance scheduled for Block B tomorrow morning (8 AM - 11 AM).
-            </div>
+            <div id="noticeBoardContainer" style="background:#fffbeb; border:1px solid #fde68a; padding:10px; border-radius:8px; font-size:0.8rem; color:#92400e; margin-top:8px;"></div>
           </div>
         </div>
 
@@ -263,7 +282,7 @@
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
               <h3>My Maintenance Tickets</h3>
-              <input type="text" id="ticketSearch" onkeyup="filterStudentTickets()" placeholder="Search..." class="form-control" style="width:140px; padding:6px 10px; font-size:0.75rem;">
+              <input type="text" id="ticketSearch" onkeyup="renderStudentTickets()" placeholder="Search..." class="form-control" style="width:140px; padding:6px 10px; font-size:0.75rem;">
             </div>
             <div id="studentComplaintList"></div>
           </div>
@@ -274,19 +293,21 @@
       <div id="s-payments" class="student-content hidden">
         <div class="card">
           <h3 style="margin-bottom:1rem;">Fee Payment History</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Receipt ID</th>
-                <th>Fee Type</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="paymentHistoryTable"></tbody>
-          </table>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Receipt ID</th>
+                  <th>Fee Type</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="paymentHistoryTable"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -298,7 +319,7 @@
             <form onsubmit="handleGatePassSubmit(event)">
               <div class="form-group">
                 <label>Outing Date</label>
-                <input type="date" required class="form-control" id="passDate" value="2026-10-22">
+                <input type="date" required class="form-control" id="passDate">
               </div>
               <div class="form-group">
                 <label>Return Time</label>
@@ -323,18 +344,20 @@
       <div id="s-mess" class="student-content hidden">
         <div class="card">
           <h3 style="margin-bottom:1rem;">Complete 7-Day Hostel Mess Menu</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>Breakfast</th>
-                <th>Lunch</th>
-                <th>Snacks</th>
-                <th>Dinner</th>
-              </tr>
-            </thead>
-            <tbody id="messMenuTableStudent"></tbody>
-          </table>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Breakfast</th>
+                  <th>Lunch</th>
+                  <th>Snacks</th>
+                  <th>Dinner</th>
+                </tr>
+              </thead>
+              <tbody id="messMenuTableStudent"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -346,7 +369,7 @@
       <!-- WARDEN OVERVIEW TAB -->
       <div id="w-dashboard" class="warden-content">
         <div class="stats-grid">
-          <div class="stat-card"><div class="fee-title">Total Registered Students</div><div id="statStudents" class="stat-number" style="color:var(--primary);">3</div></div>
+          <div class="stat-card"><div class="fee-title">Total Registered Students</div><div id="statStudents" class="stat-number" style="color:var(--primary);">0</div></div>
           <div class="stat-card"><div class="fee-title">Pending Gate Passes</div><div id="statPasses" class="stat-number" style="color:var(--warning);">0</div></div>
           <div class="stat-card"><div class="fee-title">Pending Maintenance</div><div id="statPending" class="stat-number" style="color:var(--info);">0</div></div>
           <div class="stat-card"><div class="fee-title">Resolved Maintenance</div><div id="statResolved" class="stat-number" style="color:var(--success);">0</div></div>
@@ -354,20 +377,57 @@
 
         <div class="card" style="border: 2px dashed var(--primary); background: #f0fdf4;">
           <h3 style="margin-bottom:0.5rem; color:var(--primary);">➕ Register New Student</h3>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Add a new student into the hostel database with unique ID and room details.</p>
-          <form onsubmit="handleAddNewStudent(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 1fr; gap:10px; align-items:flex-end;">
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Add a new student into the hostel database with unique ID, password and room details.</p>
+          <form onsubmit="handleAddNewStudent(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:flex-end;">
             <div class="form-group" style="margin-bottom:0;"><label>Student Name</label><input type="text" id="newStudName" required class="form-control" placeholder="Full Name"></div>
             <div class="form-group" style="margin-bottom:0;"><label>Unique ID</label><input type="text" id="newStudId" required class="form-control" placeholder="CS-2026-101"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Password</label><input type="text" id="newStudPass" required minlength="4" class="form-control" placeholder="Min 4 characters"></div>
             <div class="form-group" style="margin-bottom:0;"><label>Room & Block</label><input type="text" id="newStudRoom" required class="form-control" placeholder="305-B"></div>
             <div class="form-group" style="margin-bottom:0;"><label>Mobile No</label><input type="text" id="newStudContact" required class="form-control" placeholder="+91 9999999999"></div>
             <button type="submit" class="btn-submit" style="height:41px;">Add Student</button>
           </form>
         </div>
 
+        <div class="card" style="border: 2px dashed var(--warning); background: #fffbeb;">
+          <h3 style="margin-bottom:0.5rem; color:#b45309;">🛡️ Add New Warden</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Create a new warden account. The new warden can log in from the Warden tab on the login page.</p>
+          <form onsubmit="handleAddWarden(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; align-items:flex-end;">
+            <div class="form-group" style="margin-bottom:0;"><label>Warden Name</label><input type="text" id="newWardName" required class="form-control" placeholder="Full Name"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Warden ID</label><input type="text" id="newWardId" required class="form-control" placeholder="WARDEN-02"></div>
+            <div class="form-group" style="margin-bottom:0;"><label>Password</label><input type="text" id="newWardPass" required minlength="4" class="form-control" placeholder="Min 4 characters"></div>
+            <button type="submit" class="btn-submit" style="height:41px; background:var(--warning);">Add Warden</button>
+          </form>
+
+          <div style="overflow-x:auto; margin-top:1rem;">
+            <table>
+              <thead><tr><th>Warden ID</th><th>Name</th><th>Action</th></tr></thead>
+              <tbody id="adminWardenTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:1rem;">👥 Registered Students</h3>
+          <div style="overflow-x: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>Room</th>
+                  <th>Mobile</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminStudentTable"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="card">
           <h3 style="margin-bottom:1rem;">📢 Broadcast Notice to All Hostel Students</h3>
-          <form onsubmit="handleBroadcastNotice(event)" style="display:flex; gap:10px;">
-            <input type="text" id="noticeInput" required class="form-control" placeholder="Type announcement (e.g. Campus Wi-Fi upgrade tonight)...">
+          <form onsubmit="handleBroadcastNotice(event)" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input type="text" id="noticeInput" required class="form-control" style="flex:1; min-width:200px;" placeholder="Type announcement (e.g. Campus Wi-Fi upgrade tonight)...">
             <button type="submit" class="btn-submit" style="width:180px;">Publish Notice</button>
           </form>
         </div>
@@ -419,16 +479,14 @@
       <div id="w-fee" class="warden-content hidden">
         <div class="card">
           <h3 style="margin-bottom:0.5rem;">🔍 Student Fee Directory & Receipt Slide</h3>
-          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Search by Student Name (e.g., <strong>Ronak</strong>, <strong>Aarav</strong>) or ID (e.g., <strong>CS-2026-089</strong>)</p>
-          
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Search by Student Name (e.g., <strong>Ronak</strong>, <strong>Saurabh</strong>) or ID (e.g., <strong>CS-2026-089</strong>)</p>
+
           <div style="display:flex; gap:10px; margin-bottom:1rem;">
             <input type="text" id="lookupIdInput" onkeyup="searchStudentHistory()" class="form-control" placeholder="Type Student Name or Student ID...">
             <button onclick="searchStudentHistory()" class="btn-pay" style="width:140px;">Search Student</button>
           </div>
-          
-          <div id="lookupResultContainer" style="background:#f8fafc; padding:1.2rem; border-radius:12px; border:1px solid var(--border); font-size:0.85rem;">
-            <span style="color:var(--text-muted);">Type student name or ID above to display complete payment directory.</span>
-          </div>
+
+          <div id="lookupResultContainer" style="background:#f8fafc; padding:1.2rem; border-radius:12px; border:1px solid var(--border); font-size:0.85rem;"></div>
         </div>
       </div>
 
@@ -436,11 +494,12 @@
       <div id="w-mess" class="warden-content hidden">
         <div class="grid-main">
           <div class="card">
-            <h3 style="margin-bottom:1rem;">✏️ Edit Day Mess Menu</h3>
+            <h3 style="margin-bottom:0.5rem;">✏️ Edit Day Mess Menu</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Fill only the meal(s) you want to change (e.g. only Lunch). Empty fields stay as they are.</p>
             <form onsubmit="handleMessMenuUpdate(event)">
               <div class="form-group">
                 <label>Select Day</label>
-                <select id="editDay" class="form-control">
+                <select id="editDay" class="form-control" onchange="fillMessForm()">
                   <option value="Monday">Monday</option>
                   <option value="Tuesday">Tuesday</option>
                   <option value="Wednesday">Wednesday</option>
@@ -452,19 +511,19 @@
               </div>
               <div class="form-group">
                 <label>Breakfast</label>
-                <input type="text" id="editBreakfast" required class="form-control" placeholder="E.g., Poha, Jalebi, Tea">
+                <input type="text" id="editBreakfast" class="form-control" placeholder="E.g., Poha, Jalebi, Tea">
               </div>
               <div class="form-group">
                 <label>Lunch</label>
-                <input type="text" id="editLunch" required class="form-control" placeholder="E.g., Rajma Chawal, Raita">
+                <input type="text" id="editLunch" class="form-control" placeholder="E.g., Rajma Chawal, Raita">
               </div>
               <div class="form-group">
                 <label>Snacks</label>
-                <input type="text" id="editSnacks" required class="form-control" placeholder="E.g., Samosa, Coffee">
+                <input type="text" id="editSnacks" class="form-control" placeholder="E.g., Samosa, Coffee">
               </div>
               <div class="form-group">
                 <label>Dinner</label>
-                <input type="text" id="editDinner" required class="form-control" placeholder="E.g., Shahi Paneer, Naan">
+                <input type="text" id="editDinner" class="form-control" placeholder="E.g., Shahi Paneer, Naan">
               </div>
               <button type="submit" class="btn-submit">Save & Publish Menu</button>
             </form>
@@ -479,6 +538,7 @@
                     <th>Day</th>
                     <th>Breakfast</th>
                     <th>Lunch</th>
+                    <th>Snacks</th>
                     <th>Dinner</th>
                   </tr>
                 </thead>
@@ -499,17 +559,17 @@
         <h2 style="color:var(--primary);">HostelHub Academic Portal</h2>
         <p style="font-size:0.75rem; color:var(--text-muted);">Official Fee Payment Voucher / Slip</p>
       </div>
-      
+
       <div style="border-bottom:1px dashed var(--border); padding-bottom:1rem; margin-bottom:1rem;">
-        <div class="receipt-line"><span>Receipt No:</span><strong id="mReceiptId">HST-2026-881</strong></div>
-        <div class="receipt-line"><span>Student Name:</span><strong id="mStudentName">Ronak Singhal</strong></div>
-        <div class="receipt-line"><span>Student Roll ID:</span><strong id="mStudentRoll">CS-2026-089</strong></div>
-        <div class="receipt-line"><span>Fee Category:</span><strong id="mFeeType">Mess Fee</strong></div>
-        <div class="receipt-line"><span>Payment Date:</span><strong id="mDate">22-10-2026</strong></div>
-        <div class="receipt-line"><span>Txn Ref ID:</span><strong id="mTxnId">TXN-20261022-884</strong></div>
+        <div class="receipt-line"><span>Receipt No:</span><strong id="mReceiptId"></strong></div>
+        <div class="receipt-line"><span>Student Name:</span><strong id="mStudentName"></strong></div>
+        <div class="receipt-line"><span>Student Roll ID:</span><strong id="mStudentRoll"></strong></div>
+        <div class="receipt-line"><span>Fee Category:</span><strong id="mFeeType"></strong></div>
+        <div class="receipt-line"><span>Payment Date:</span><strong id="mDate"></strong></div>
+        <div class="receipt-line"><span>Txn Ref ID:</span><strong id="mTxnId"></strong></div>
       </div>
       <div class="receipt-line" style="font-size:1.1rem; font-weight:800; color:var(--success);">
-        <span>Amount Paid:</span><span id="mAmount">₹12,500</span>
+        <span>Amount Paid:</span><span id="mAmount"></span>
       </div>
 
       <div class="no-print" style="display:flex; gap:10px; margin-top:1.5rem;">
@@ -520,12 +580,30 @@
   </div>
 
   <script>
-    let currentRole = 'student';
-    let currentStudentIndex = 0;
-    const todayDate = "22-10-2026";
+    // ---------- HELPERS ----------
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function getToday() { const d = new Date(); return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`; }
+    function getTodayISO() { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+    function isoToDisplay(iso) { const p = (iso || '').split('-'); return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : iso; }
+    function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
+    function esc(str) {
+      return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function uid(prefix) { return prefix + Date.now().toString().slice(-6) + Math.floor(10 + Math.random() * 90); }
 
-    // --- LOCAL STORAGE DATA PERSISTENCE INITIALIZATION ---
-    let defaultMessMenu = [
+    function loadKey(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) { return fallback; }
+    }
+
+    // ---------- DEFAULT DATA ----------
+    const defaultWardens = [
+      { id: 'WARDEN-01', password: 'admin@123', name: 'Chief Warden' }
+    ];
+
+    const defaultMessMenu = [
       { day: 'Monday', b: 'Aloo Paratha, Curd', l: 'Dal Makhani, Rice, Roti', s: 'Samosa, Tea', d: 'Mix Veg, Chana Dal, Roti' },
       { day: 'Tuesday', b: 'Poha, Tea', l: 'Kadhi Pakora, Rice', s: 'Biscuit, Coffee', d: 'Aloo Jeera, Dal Fry, Roti' },
       { day: 'Wednesday', b: 'Idli Sambhar', l: 'Rajma Chawal, Salad', s: 'Bread Pakora', d: 'Matar Paneer, Roti, Rice' },
@@ -535,243 +613,302 @@
       { day: 'Sunday', b: 'Uttapam, Chutney', l: 'Special Thali (Biryani)', s: 'Cake, Cold Drink', d: 'Dal Makhani, Ice Cream' }
     ];
 
-    let defaultStudentDB = [
+    const defaultStudentDB = [
       {
-        id: 'CS-2026-089', name: 'Ronak Singhal', room: '304-B', contact: '+91 9876543210',
+        id: 'CS-2026-089', password: 'ronak@123', name: 'Ronak Singhal', room: '304-B', contact: '+91 9876543210',
         payments: [
-          { id: 'RCT-2026-101', type: 'Semester Mess Fee', amount: '₹25,000', date: '10-08-2026', txnId: 'TXN-20260810-101', status: 'Paid' },
-          { id: 'RCT-2026-102', type: 'Hostel Caution Deposit', amount: '₹5,000', date: '15-07-2026', txnId: 'TXN-20260715-102', status: 'Paid' },
-          { id: 'RCT-2026-103', type: 'Semester Maintenance Fee', amount: '₹12,500', date: '30-10-2026', txnId: 'Pending', status: 'Pending' }
+          { id: 'RCT-2026-101', type: 'Semester Mess Fee', amount: 25000, date: '10-08-2026', txnId: 'TXN-20260810-101', status: 'Paid' },
+          { id: 'RCT-2026-102', type: 'Hostel Caution Deposit', amount: 5000, date: '15-07-2026', txnId: 'TXN-20260715-102', status: 'Paid' },
+          { id: 'RCT-2026-103', type: 'Semester Maintenance Fee', amount: 12500, date: '30-10-2026', txnId: 'Pending', status: 'Pending' }
         ]
       },
       {
-        id: 'CS-2026-090', name: 'Aarav Sharma', room: '210-A', contact: '+91 9123456789',
+        id: 'CS-2026-090', password: 'saurabh@123', name: 'Saurabh Kumar', room: '210-A', contact: '+91 9123456789',
         payments: [
-          { id: 'RCT-2026-201', type: 'Semester Mess Fee', amount: '₹25,000', date: '11-08-2026', txnId: 'TXN-20260811-201', status: 'Paid' },
-          { id: 'RCT-2026-202', type: 'Semester Maintenance Fee', amount: '₹12,500', date: '30-10-2026', txnId: 'Pending', status: 'Unpaid' }
+          { id: 'RCT-2026-201', type: 'Semester Mess Fee', amount: 25000, date: '11-08-2026', txnId: 'TXN-20260811-201', status: 'Paid' },
+          { id: 'RCT-2026-202', type: 'Semester Maintenance Fee', amount: 12500, date: '30-10-2026', txnId: 'Pending', status: 'Unpaid' }
         ]
       },
       {
-        id: 'CS-2026-091', name: 'Priya Verma', room: '105-C', contact: '+91 9988776655',
+        id: 'CS-2026-091', password: 'rohit@123', name: 'Rohit', room: '105-C', contact: '+91 9988776655',
         payments: [
-          { id: 'RCT-2026-301', type: 'Semester Mess Fee', amount: '₹25,000', date: '09-08-2026', txnId: 'TXN-20260809-301', status: 'Paid' },
-          { id: 'RCT-2026-302', type: 'Semester Maintenance Fee', amount: '₹12,500', date: '22-10-2026', txnId: 'TXN-20261022-302', status: 'Paid' }
+          { id: 'RCT-2026-301', type: 'Semester Mess Fee', amount: 25000, date: '09-08-2026', txnId: 'TXN-20260809-301', status: 'Paid' },
+          { id: 'RCT-2026-302', type: 'Semester Maintenance Fee', amount: 12500, date: '22-10-2026', txnId: 'TXN-20261022-302', status: 'Paid' }
+        ]
+      },
+      {
+        id: 'CS-2026-092', password: 'satyveer@123', name: 'Satyveer', room: '112-A', contact: '+91 9812345670',
+        payments: [
+          { id: 'RCT-2026-401', type: 'Semester Mess Fee', amount: 25000, date: '12-08-2026', txnId: 'TXN-20260812-401', status: 'Paid' },
+          { id: 'RCT-2026-402', type: 'Semester Maintenance Fee', amount: 12500, date: '30-10-2026', txnId: 'Pending', status: 'Pending' }
         ]
       }
     ];
 
-    let defaultComplaints = [
-      { id: 'TKN-101', studentName: 'Ronak Singhal', room: '304-B', category: 'Plumbing', urgency: 'Emergency', description: 'Bathroom tap leaking continuously.', status: 'In Progress', date: '21-10-2026' },
-      { id: 'TKN-102', studentName: 'Aarav Sharma', room: '210-A', category: 'Wi-Fi', urgency: 'Medium', description: 'LAN socket speed issue.', status: 'Pending', date: '22-10-2026' }
+    const defaultComplaints = [
+      { id: 'TKN-101', studentId: 'CS-2026-089', studentName: 'Ronak Singhal', room: '304-B', category: 'Plumbing', urgency: 'Emergency', description: 'Bathroom tap leaking continuously.', status: 'In Progress', date: '21-10-2026' },
+      { id: 'TKN-102', studentId: 'CS-2026-090', studentName: 'Saurabh Kumar', room: '210-A', category: 'Wi-Fi', urgency: 'Medium', description: 'LAN socket speed issue.', status: 'Pending', date: '22-10-2026' }
     ];
 
-    let defaultGatePasses = [
-      { id: 'GP-401', studentName: 'Ronak Singhal', date: '22-10-2026', returnTime: '08:00 PM', reason: 'Library Outing', status: 'Pending' },
-      { id: 'GP-402', studentName: 'Priya Verma', date: '22-10-2026', returnTime: '09:00 PM', reason: 'Medical Checkup', status: 'Approved' }
+    const defaultGatePasses = [
+      { id: 'GP-401', studentId: 'CS-2026-089', studentName: 'Ronak Singhal', date: '22-10-2026', returnTime: '08:00 PM', reason: 'Library Outing', status: 'Pending' },
+      { id: 'GP-402', studentId: 'CS-2026-091', studentName: 'Rohit', date: '22-10-2026', returnTime: '09:00 PM', reason: 'Medical Checkup', status: 'Approved' }
     ];
 
-    // Load state from localStorage or set defaults
-    let messMenu = JSON.parse(localStorage.getItem('hh_messMenu')) || defaultMessMenu;
-    let studentDB = JSON.parse(localStorage.getItem('hh_studentDB')) || defaultStudentDB;
-    let complaints = JSON.parse(localStorage.getItem('hh_complaints')) || defaultComplaints;
-    let gatePasses = JSON.parse(localStorage.getItem('hh_gatePasses')) || defaultGatePasses;
+    const defaultNotice = { text: 'Water maintenance scheduled for Block B tomorrow morning (8 AM - 11 AM).', date: '22-10-2026' };
+
+    // ---------- PERSISTENT STATE (localStorage) ----------
+    let messMenu = loadKey('hh3_messMenu', defaultMessMenu);
+    let studentDB = loadKey('hh3_studentDB', defaultStudentDB);
+    let complaints = loadKey('hh3_complaints', defaultComplaints);
+    let gatePasses = loadKey('hh3_gatePasses', defaultGatePasses);
+    let notice = loadKey('hh3_notice', defaultNotice);
+    let wardenDB = loadKey('hh3_wardens', defaultWardens);
 
     function saveData() {
-      localStorage.setItem('hh_messMenu', JSON.stringify(messMenu));
-      localStorage.setItem('hh_studentDB', JSON.stringify(studentDB));
-      localStorage.setItem('hh_complaints', JSON.stringify(complaints));
-      localStorage.setItem('hh_gatePasses', JSON.stringify(gatePasses));
+      try {
+        localStorage.setItem('hh3_messMenu', JSON.stringify(messMenu));
+        localStorage.setItem('hh3_studentDB', JSON.stringify(studentDB));
+        localStorage.setItem('hh3_complaints', JSON.stringify(complaints));
+        localStorage.setItem('hh3_gatePasses', JSON.stringify(gatePasses));
+        localStorage.setItem('hh3_notice', JSON.stringify(notice));
+        localStorage.setItem('hh3_wardens', JSON.stringify(wardenDB));
+      } catch (e) { alert('Storage full or blocked. Data may not be saved.'); }
     }
 
-    function handleStudentLogin(e) {
+    // Seed defaults the very first time so nothing is lost on refresh
+    saveData();
+
+    // ---------- SESSION (stays logged in on refresh, resets when tab is closed) ----------
+    let currentRole = null;          // 'student' | 'warden'
+    let currentStudentId = null;
+    let currentWardenId = null;
+
+    function getCurrentStudent() { return studentDB.find(s => s.id === currentStudentId); }
+
+    function saveSession() {
+      try { sessionStorage.setItem('hh3_session', JSON.stringify({ role: currentRole, id: currentRole === 'warden' ? currentWardenId : currentStudentId })); } catch (e) {}
+    }
+    function clearSession() {
+      try { sessionStorage.removeItem('hh3_session'); } catch (e) {}
+    }
+
+    // ---------- LOGIN / LOGOUT ----------
+    let loginRole = 'student';
+
+    function setLoginRole(role) {
+      loginRole = role;
+      document.getElementById('roleStudentBtn').classList.toggle('active', role === 'student');
+      document.getElementById('roleWardenBtn').classList.toggle('active', role === 'warden');
+      document.getElementById('loginIdLabel').textContent = role === 'student' ? 'Student ID' : 'Warden ID';
+      document.getElementById('loginId').placeholder = role === 'student' ? 'e.g. CS-2026-089' : 'e.g. WARDEN-01';
+      document.getElementById('demoStudent').classList.toggle('hidden', role !== 'student');
+      document.getElementById('demoWarden').classList.toggle('hidden', role !== 'warden');
+      document.getElementById('loginError').classList.add('hidden');
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('loginError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function handleLogin(e) {
       e.preventDefault();
       const inputId = document.getElementById('loginId').value.trim().toLowerCase();
-      const inputPass = document.getElementById('loginPass').value.trim().toLowerCase();
+      const inputPass = document.getElementById('loginPass').value;
 
-      const idx = studentDB.findIndex(s => s.id.toLowerCase() === inputId && s.name.toLowerCase() === inputPass);
+      if (loginRole === 'student') {
+        const stud = studentDB.find(s => s.id.toLowerCase() === inputId && s.password === inputPass);
+        if (!stud) { showLoginError('Invalid Student ID or password.'); return; }
+        currentRole = 'student';
+        currentStudentId = stud.id;
+      } else {
+        const w = wardenDB.find(a => a.id.toLowerCase() === inputId && a.password === inputPass);
+        if (!w) { showLoginError('Invalid Warden ID or password.'); return; }
+        currentRole = 'warden';
+        currentStudentId = null;
+        currentWardenId = w.id;
+      }
 
-      if (idx !== -1) {
-        currentStudentIndex = idx;
-        document.getElementById('studentLoginView').classList.add('hidden');
+      saveSession();
+      document.getElementById('loginId').value = '';
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginError').classList.add('hidden');
+      showApp();
+    }
+
+    function logout() {
+      if (!confirm('Logout from current session?')) return;
+      currentRole = null;
+      currentStudentId = null;
+      currentWardenId = null;
+      clearSession();
+      showLogin();
+    }
+
+    function showLogin() {
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('studentView').classList.add('hidden');
+      document.getElementById('adminView').classList.add('hidden');
+      document.getElementById('navigationTabBar').classList.add('hidden');
+      document.getElementById('headerActions').classList.add('hidden');
+      setLoginRole('student');
+    }
+
+    function showApp() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('navigationTabBar').classList.remove('hidden');
+      document.getElementById('headerActions').classList.remove('hidden');
+
+      if (currentRole === 'student') {
+        document.getElementById('adminView').classList.add('hidden');
         document.getElementById('studentView').classList.remove('hidden');
-        document.getElementById('navigationTabBar').classList.remove('hidden');
+        document.querySelectorAll('.warden-tab').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.student-tab').forEach(el => el.classList.remove('hidden'));
+        document.getElementById('currentRoleText').textContent = 'Student';
         loadCurrentStudentData();
-        alert(`Welcome back, ${studentDB[currentStudentIndex].name}!`);
+        switchStudentTab('s-dashboard', document.querySelector('.student-tab'));
       } else {
-        alert("Invalid credentials! Please use demo credentials.");
-      }
-    }
-
-    function studentLogout() {
-      if (confirm("Logout from current session?")) {
         document.getElementById('studentView').classList.add('hidden');
-        document.getElementById('navigationTabBar').classList.add('hidden');
-        document.getElementById('studentLoginView').classList.remove('hidden');
-        document.getElementById('loginId').value = '';
-        document.getElementById('loginPass').value = '';
+        document.getElementById('adminView').classList.remove('hidden');
+        document.querySelectorAll('.student-tab').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.warden-tab').forEach(el => el.classList.remove('hidden'));
+        const wd = wardenDB.find(w => w.id === currentWardenId);
+        document.getElementById('currentRoleText').textContent = wd ? wd.name + ' (Warden)' : 'Warden Staff';
+        renderAdminDashboard();
+        switchWardenTab('w-dashboard', document.querySelector('.warden-tab'));
       }
     }
 
-    function loadCurrentStudentData() {
-      const stud = studentDB[currentStudentIndex];
-      const initials = stud.name.split(' ').map(n=>n[0]).join('');
-
-      document.getElementById('sProfileAvatar').textContent = initials;
-      document.getElementById('sProfileName').textContent = stud.name;
-      document.getElementById('sProfileRoom').textContent = `Room ${stud.room}`;
-      document.getElementById('sProfileId').textContent = `ID: ${stud.id}`;
-
-      updateStudentFeeStats();
-      renderStudentTickets();
-      renderGatePasses();
-    }
-
-    function updateStudentFeeStats() {
-      const stud = studentDB[currentStudentIndex];
-      let total = 0, paid = 0;
-
-      stud.payments.forEach(p => {
-        let amt = parseInt(p.amount.replace('₹', '').replace(',', ''));
-        total += amt;
-        if (p.status === 'Paid') paid += amt;
-      });
-      let left = total - paid;
-
-      document.getElementById('feeTotalText').textContent = '₹' + total.toLocaleString('en-IN');
-      document.getElementById('feePaidText').textContent = '₹' + paid.toLocaleString('en-IN');
-      document.getElementById('feeLeftText').textContent = '₹' + left.toLocaleString('en-IN');
-
-      const payBtn = document.getElementById('payFeeBtn');
-
-      if (left === 0) {
-        document.getElementById('feeBadge').className = 'badge-status badge-paid';
-        document.getElementById('feeBadge').textContent = 'All Cleared';
-        document.getElementById('feeAmountText').textContent = '₹0 (Paid)';
-        payBtn.textContent = 'Paid';
-        payBtn.disabled = true;
-      } else {
-        document.getElementById('feeBadge').className = 'badge-status badge-unpaid';
-        document.getElementById('feeBadge').textContent = 'Dues Pending';
-        document.getElementById('feeAmountText').textContent = '₹' + left.toLocaleString('en-IN');
-        payBtn.textContent = 'Pay Fees Online';
-        payBtn.disabled = false;
-      }
-    }
-
-    function switchStudentTab(tabId) {
-      document.querySelectorAll('.student-tab').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.student-content').forEach(content => content.classList.add('hidden'));
-
-      event.target.classList.add('active');
+    // ---------- TABS ----------
+    function switchStudentTab(tabId, btn) {
+      document.querySelectorAll('.student-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.student-content').forEach(c => c.classList.add('hidden'));
+      if (btn) btn.classList.add('active');
       document.getElementById(tabId).classList.remove('hidden');
 
+      if (tabId === 's-dashboard') loadCurrentStudentData();
       if (tabId === 's-payments') renderPaymentHistory();
       if (tabId === 's-gatepass') renderGatePasses();
       if (tabId === 's-mess') renderMessMenuTables();
     }
 
-    function switchWardenTab(tabId) {
-      document.querySelectorAll('.warden-tab').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.warden-content').forEach(content => content.classList.add('hidden'));
-
-      event.target.classList.add('active');
+    function switchWardenTab(tabId, btn) {
+      document.querySelectorAll('.warden-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.warden-content').forEach(c => c.classList.add('hidden'));
+      if (btn) btn.classList.add('active');
       document.getElementById(tabId).classList.remove('hidden');
 
-      if (tabId === 'w-mess') renderMessMenuTables();
+      if (tabId === 'w-dashboard' || tabId === 'w-gatepass') renderAdminDashboard();
+      if (tabId === 'w-mess') { renderMessMenuTables(); fillMessForm(); }
       if (tabId === 'w-fee') searchStudentHistory();
     }
 
-    function toggleRole() {
-      if (currentRole === 'student') {
-        currentRole = 'warden';
-        document.getElementById('studentView').classList.add('hidden');
-        document.getElementById('studentLoginView').classList.add('hidden');
-        document.getElementById('adminView').classList.remove('hidden');
-        document.getElementById('navigationTabBar').classList.remove('hidden');
-        
-        document.querySelectorAll('.student-tab').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.warden-tab').forEach(el => el.classList.remove('hidden'));
+    // ---------- STUDENT DATA ----------
+    function loadCurrentStudentData() {
+      const stud = getCurrentStudent();
+      if (!stud) { currentRole = null; clearSession(); showLogin(); return; }
+      const initials = stud.name.split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-        document.getElementById('currentRoleText').textContent = 'Warden Staff';
-        document.getElementById('toggleRoleBtn').textContent = 'Switch to Student View';
-        
-        renderAdminDashboard();
-        switchWardenTab('w-dashboard');
-      } else {
-        currentRole = 'student';
-        document.getElementById('adminView').classList.add('hidden');
-        document.getElementById('studentView').classList.remove('hidden');
+      document.getElementById('sProfileAvatar').textContent = initials;
+      document.getElementById('sProfileName').textContent = stud.name;
+      document.getElementById('sProfileRoom').textContent = `Room ${stud.room}`;
+      document.getElementById('sProfileId').textContent = `ID: ${stud.id}`;
+      document.getElementById('noticeBoardContainer').innerHTML = `<strong>📢 [${esc(notice.date)}]:</strong> ${esc(notice.text)}`;
 
-        document.querySelectorAll('.warden-tab').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.student-tab').forEach(el => el.classList.remove('hidden'));
-
-        document.getElementById('currentRoleText').textContent = 'Student';
-        document.getElementById('toggleRoleBtn').textContent = 'Switch to Warden View';
-
-        loadCurrentStudentData();
-        switchStudentTab('s-dashboard');
-      }
+      updateStudentFeeStats();
+      renderStudentTickets();
+      renderGatePasses();
+      document.getElementById('passDate').value = getTodayISO();
+      document.getElementById('passDate').min = getTodayISO();
     }
 
-    function handleAddNewStudent(e) {
-      e.preventDefault();
-      const name = document.getElementById('newStudName').value;
-      const id = document.getElementById('newStudId').value;
-      const room = document.getElementById('newStudRoom').value;
-      const contact = document.getElementById('newStudContact').value;
-
-      studentDB.push({
-        id: id, name: name, room: room, contact: contact,
-        payments: [
-          { id: 'RCT-2026-' + Math.floor(100+Math.random()*900), type: 'Semester Mess Fee', amount: '₹25,000', date: todayDate, txnId: 'TXN-20261022-' + Math.floor(100+Math.random()*900), status: 'Paid' },
-          { id: 'RCT-2026-' + Math.floor(100+Math.random()*900), type: 'Semester Maintenance Fee', amount: '₹12,500', date: '30-10-2026', txnId: 'Pending', status: 'Pending' }
-        ]
+    function updateStudentFeeStats() {
+      const stud = getCurrentStudent();
+      let total = 0, paid = 0;
+      stud.payments.forEach(p => {
+        total += p.amount;
+        if (p.status === 'Paid') paid += p.amount;
       });
+      const left = total - paid;
 
-      saveData();
-      alert(`Student ${name} (${id}) registered!`);
-      e.target.reset();
-      renderAdminDashboard();
-      searchStudentHistory();
-    }
+      document.getElementById('feeTotalText').textContent = fmt(total);
+      document.getElementById('feePaidText').textContent = fmt(paid);
+      document.getElementById('feeLeftText').textContent = fmt(left);
 
-    function handleMessMenuUpdate(e) {
-      e.preventDefault();
-      const day = document.getElementById('editDay').value;
-      const menuItem = messMenu.find(m => m.day === day);
-      if (menuItem) {
-        menuItem.b = document.getElementById('editBreakfast').value;
-        menuItem.l = document.getElementById('editLunch').value;
-        menuItem.s = document.getElementById('editSnacks').value;
-        menuItem.d = document.getElementById('editDinner').value;
-        saveData();
-        renderMessMenuTables();
-        alert(`Mess Menu for ${day} updated!`);
+      const payBtn = document.getElementById('payFeeBtn');
+      const nextDue = stud.payments.find(p => p.status !== 'Paid');
+      document.getElementById('feeDueDate').textContent = nextDue ? `Due: ${nextDue.date}` : 'No dues';
+
+      if (left === 0) {
+        document.getElementById('feeBadge').className = 'badge-status badge-paid';
+        document.getElementById('feeBadge').textContent = 'All Cleared';
+        document.getElementById('feeAmountText').textContent = '₹0 (Paid)';
+        document.getElementById('feeAmountText').style.color = 'var(--success)';
+        payBtn.textContent = 'Paid';
+        payBtn.disabled = true;
+      } else {
+        document.getElementById('feeBadge').className = 'badge-status badge-unpaid';
+        document.getElementById('feeBadge').textContent = 'Dues Pending';
+        document.getElementById('feeAmountText').textContent = fmt(left);
+        document.getElementById('feeAmountText').style.color = 'var(--danger)';
+        payBtn.textContent = 'Pay Fees Online';
+        payBtn.disabled = false;
       }
     }
 
-    function renderMessMenuTables() {
-      const studentTbody = document.getElementById('messMenuTableStudent');
-      const wardenTbody = document.getElementById('messMenuTableWardenPreview');
+    // ---------- PAYMENTS ----------
+    function payHostelFee(paymentId) {
+      const stud = getCurrentStudent();
+      const pendingPay = paymentId ? stud.payments.find(p => p.id === paymentId) : stud.payments.find(p => p.status !== 'Paid');
 
-      const rowsHtml = messMenu.map(m => `
-        <tr><td><strong>${m.day}</strong></td><td>${m.b}</td><td>${m.l}</td><td>${m.s}</td><td>${m.d}</td></tr>
-      `).join('');
+      if (!pendingPay || pendingPay.status === 'Paid') {
+        alert('All dues are already cleared!');
+        return;
+      }
 
-      if(studentTbody) studentTbody.innerHTML = rowsHtml;
-      if(wardenTbody) wardenTbody.innerHTML = messMenu.map(m => `
-        <tr><td><strong>${m.day}</strong></td><td>${m.b}</td><td>${m.l}</td><td>${m.d}</td></tr>
+      if (confirm(`Proceed online payment of ${fmt(pendingPay.amount)} for ${pendingPay.type}?`)) {
+        pendingPay.status = 'Paid';
+        pendingPay.date = getToday();
+        pendingPay.txnId = 'TXN-' + getToday().split('-').reverse().join('') + '-' + Math.floor(100 + Math.random() * 900);
+
+        saveData();
+        updateStudentFeeStats();
+        renderPaymentHistory();
+        alert('Payment successful! Receipt generated.');
+      }
+    }
+
+    function renderPaymentHistory() {
+      const stud = getCurrentStudent();
+      document.getElementById('paymentHistoryTable').innerHTML = stud.payments.map(p => `
+        <tr>
+          <td><strong>${esc(p.id)}</strong></td>
+          <td>${esc(p.type)}</td>
+          <td>${fmt(p.amount)}</td>
+          <td>${esc(p.date)}</td>
+          <td><span class="badge-status ${p.status === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${esc(p.status)}</span></td>
+          <td>
+            ${p.status === 'Paid'
+              ? `<button onclick="printReceiptModal('${esc(stud.id)}', '${esc(p.id)}')" class="btn-pay" style="padding:4px 10px;">Receipt Slip</button>`
+              : `<button onclick="payHostelFee('${esc(p.id)}')" class="btn-pay" style="padding:4px 10px; background:var(--primary);">Pay Dues</button>`}
+          </td>
+        </tr>
       `).join('');
     }
 
-    function printReceiptModal(studName, studRoll, type, amount, date, receiptId, txnId) {
-      document.getElementById('mStudentName').textContent = studName;
-      document.getElementById('mStudentRoll').textContent = studRoll;
-      document.getElementById('mFeeType').textContent = type;
-      document.getElementById('mAmount').textContent = amount;
-      document.getElementById('mDate').textContent = date;
-      document.getElementById('mReceiptId').textContent = receiptId;
-      document.getElementById('mTxnId').textContent = txnId || ('TXN-20261022-' + Math.floor(100+Math.random()*900));
+    function printReceiptModal(studentId, paymentId) {
+      const stud = studentDB.find(s => s.id === studentId);
+      const p = stud && stud.payments.find(x => x.id === paymentId);
+      if (!p) return;
+      document.getElementById('mStudentName').textContent = stud.name;
+      document.getElementById('mStudentRoll').textContent = stud.id;
+      document.getElementById('mFeeType').textContent = p.type;
+      document.getElementById('mAmount').textContent = fmt(p.amount);
+      document.getElementById('mDate').textContent = p.date;
+      document.getElementById('mReceiptId').textContent = p.id;
+      document.getElementById('mTxnId').textContent = p.txnId;
       document.getElementById('receiptModal').classList.remove('hidden');
     }
 
@@ -779,140 +916,233 @@
       document.getElementById('receiptModal').classList.add('hidden');
     }
 
-    function payHostelFee() {
-      const stud = studentDB[currentStudentIndex];
-      const pendingPay = stud.payments.find(p => p.status !== 'Paid');
-
-      if (!pendingPay) {
-        alert("All dues are already cleared!");
-        return;
-      }
-
-      if (confirm(`Proceed online payment of ${pendingPay.amount} for ${pendingPay.type}?`)) {
-        pendingPay.status = 'Paid';
-        pendingPay.date = todayDate;
-        pendingPay.txnId = 'TXN-20261022-' + Math.floor(100+Math.random()*900);
-        
-        saveData();
-        updateStudentFeeStats();
-        renderPaymentHistory();
-        alert("Payment successful! Receipt generated.");
-      }
-    }
-
+    // ---------- MAINTENANCE TICKETS ----------
     function handleFormSubmit(e) {
       e.preventDefault();
-      const stud = studentDB[currentStudentIndex];
+      const stud = getCurrentStudent();
 
       complaints.unshift({
-        id: 'TKN-' + Math.floor(100 + Math.random() * 900),
+        id: uid('TKN-'),
+        studentId: stud.id,
         studentName: stud.name,
         room: stud.room,
         category: document.getElementById('category').value,
         urgency: document.getElementById('urgency').value,
-        description: document.getElementById('description').value,
+        description: document.getElementById('description').value.trim(),
         status: 'Pending',
-        date: todayDate
+        date: getToday()
       });
 
       saveData();
       document.getElementById('complaintForm').reset();
       renderStudentTickets();
-      alert("Ticket submitted!");
+      alert('Ticket submitted!');
     }
 
     function renderStudentTickets() {
-      const stud = studentDB[currentStudentIndex];
+      const stud = getCurrentStudent();
+      if (!stud) return;
       const container = document.getElementById('studentComplaintList');
-      const studentTickets = complaints.filter(c => c.studentName === stud.name);
+      const query = (document.getElementById('ticketSearch').value || '').toLowerCase();
+      const tickets = complaints.filter(c => c.studentId === stud.id && (c.id.toLowerCase().includes(query) || c.description.toLowerCase().includes(query)));
 
-      if (studentTickets.length === 0) {
-        container.innerHTML = `<p style="font-size:0.8rem; color:var(--text-muted);">No maintenance tickets raised yet.</p>`;
+      if (tickets.length === 0) {
+        container.innerHTML = `<p style="font-size:0.8rem; color:var(--text-muted);">No maintenance tickets found.</p>`;
         return;
       }
 
-      container.innerHTML = studentTickets.map(t => `
+      container.innerHTML = tickets.map(t => `
         <div class="ticket-card">
           <div>
-            <strong style="font-size:0.85rem;">${t.id}</strong> 
-            <span class="urgency-badge urgency-${t.urgency}">${t.urgency}</span>
-            <p style="font-size:0.80rem; color:var(--text-muted); margin-top:4px;">${t.description}</p>
+            <strong style="font-size:0.85rem;">${esc(t.id)}</strong>
+            <span class="urgency-badge urgency-${esc(t.urgency)}">${esc(t.urgency)}</span>
+            <p style="font-size:0.80rem; color:var(--text-muted); margin-top:4px;">${esc(t.description)}</p>
           </div>
-          <div><span class="status-badge status-${t.status.replace(/\s+/g, '')}">${t.status}</span></div>
+          <div><span class="status-badge status-${t.status.replace(/\s+/g, '')}">${esc(t.status)}</span></div>
         </div>
       `).join('');
     }
 
-    function filterStudentTickets() {
-      const stud = studentDB[currentStudentIndex];
-      const query = document.getElementById('ticketSearch').value.toLowerCase();
-      const filtered = complaints.filter(c => c.studentName === stud.name && (c.id.toLowerCase().includes(query) || c.description.toLowerCase().includes(query)));
-      
-      document.getElementById('studentComplaintList').innerHTML = filtered.map(t => `
-        <div class="ticket-card">
-          <div>
-            <strong style="font-size:0.85rem;">${t.id}</strong> 
-            <span class="urgency-badge urgency-${t.urgency}">${t.urgency}</span>
-            <p style="font-size:0.80rem; color:var(--text-muted); margin-top:4px;">${t.description}</p>
-          </div>
-          <div><span class="status-badge status-${t.status.replace(/\s+/g, '')}">${t.status}</span></div>
-        </div>
-      `).join('');
-    }
-
-    function renderPaymentHistory() {
-      const stud = studentDB[currentStudentIndex];
-      document.getElementById('paymentHistoryTable').innerHTML = stud.payments.map(p => `
-        <tr>
-          <td><strong>${p.id}</strong></td>
-          <td>${p.type}</td>
-          <td>${p.amount}</td>
-          <td>${p.date}</td>
-          <td><span class="badge-status ${p.status === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${p.status}</span></td>
-          <td>
-            ${p.status === 'Paid' 
-              ? `<button onclick="printReceiptModal('${stud.name}', '${stud.id}', '${p.type}', '${p.amount}', '${p.date}', '${p.id}', '${p.txnId}')" class="btn-pay" style="padding:4px 10px;">Receipt Slip</button>`
-              : `<button onclick="payHostelFee()" class="btn-pay" style="padding:4px 10px; background:var(--primary);">Pay Dues</button>`}
-          </td>
-        </tr>
-      `).join('');
-    }
-
+    // ---------- GATE PASS ----------
     function handleGatePassSubmit(e) {
       e.preventDefault();
-      const stud = studentDB[currentStudentIndex];
+      const stud = getCurrentStudent();
+      const t = document.getElementById('passTime').value;
+      let timeText = t;
+      if (t) {
+        const [h, m] = t.split(':').map(Number);
+        timeText = `${pad(h % 12 === 0 ? 12 : h % 12)}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`;
+      }
 
       gatePasses.unshift({
-        id: 'GP-' + Math.floor(100 + Math.random() * 900),
+        id: uid('GP-'),
+        studentId: stud.id,
         studentName: stud.name,
-        date: document.getElementById('passDate').value || todayDate,
-        returnTime: document.getElementById('passTime').value,
-        reason: document.getElementById('passReason').value,
+        date: isoToDisplay(document.getElementById('passDate').value) || getToday(),
+        returnTime: timeText,
+        reason: document.getElementById('passReason').value.trim(),
         status: 'Pending'
       });
       saveData();
+      e.target.reset();
+      document.getElementById('passDate').value = getTodayISO();
       renderGatePasses();
-      alert("Gate Pass request submitted!");
+      alert('Gate Pass request submitted!');
+    }
+
+    function passBadgeClass(status) {
+      return status === 'Approved' ? 'badge-paid' : (status === 'Rejected' ? 'badge-unpaid' : 'badge-pending');
     }
 
     function renderGatePasses() {
-      const stud = studentDB[currentStudentIndex];
-      const studentPasses = gatePasses.filter(g => g.studentName === stud.name);
+      const stud = getCurrentStudent();
+      if (!stud) return;
+      const list = gatePasses.filter(g => g.studentId === stud.id);
 
-      if (studentPasses.length === 0) {
+      if (list.length === 0) {
         document.getElementById('gatePassList').innerHTML = `<p style="font-size:0.8rem; color:var(--text-muted);">No gate passes requested yet.</p>`;
         return;
       }
 
-      document.getElementById('gatePassList').innerHTML = studentPasses.map(g => `
+      document.getElementById('gatePassList').innerHTML = list.map(g => `
         <div class="ticket-card">
           <div>
-            <strong>${g.id}</strong> - <span style="font-size:0.80rem; color:var(--text-muted);">${g.date} (${g.returnTime})</span>
-            <p style="font-size:0.80rem; margin-top:4px;">${g.reason}</p>
+            <strong>${esc(g.id)}</strong> - <span style="font-size:0.80rem; color:var(--text-muted);">${esc(g.date)} (${esc(g.returnTime)})</span>
+            <p style="font-size:0.80rem; margin-top:4px;">${esc(g.reason)}</p>
           </div>
-          <div><span class="badge-status ${g.status === 'Approved' ? 'badge-paid' : (g.status === 'Rejected' ? 'badge-unpaid' : 'badge-pending')}">${g.status}</span></div>
+          <div><span class="badge-status ${passBadgeClass(g.status)}">${esc(g.status)}</span></div>
         </div>
       `).join('');
+    }
+
+    // ---------- MESS MENU ----------
+    function renderMessMenuTables() {
+      const studentTbody = document.getElementById('messMenuTableStudent');
+      const wardenTbody = document.getElementById('messMenuTableWardenPreview');
+
+      if (studentTbody) studentTbody.innerHTML = messMenu.map(m => `
+        <tr><td><strong>${esc(m.day)}</strong></td><td>${esc(m.b)}</td><td>${esc(m.l)}</td><td>${esc(m.s)}</td><td>${esc(m.d)}</td></tr>
+      `).join('');
+      if (wardenTbody) wardenTbody.innerHTML = messMenu.map(m => `
+        <tr><td><strong>${esc(m.day)}</strong></td><td>${esc(m.b)}</td><td>${esc(m.l)}</td><td>${esc(m.s)}</td><td>${esc(m.d)}</td></tr>
+      `).join('');
+    }
+
+    function fillMessForm() {
+      const day = document.getElementById('editDay').value;
+      const m = messMenu.find(x => x.day === day);
+      if (!m) return;
+      const map = { editBreakfast: m.b, editLunch: m.l, editSnacks: m.s, editDinner: m.d };
+      Object.keys(map).forEach(id => {
+        const el = document.getElementById(id);
+        el.value = '';
+        el.placeholder = 'Current: ' + map[id];
+      });
+    }
+
+    function handleMessMenuUpdate(e) {
+      e.preventDefault();
+      const day = document.getElementById('editDay').value;
+      const menuItem = messMenu.find(m => m.day === day);
+      if (!menuItem) return;
+
+      const b = document.getElementById('editBreakfast').value.trim();
+      const l = document.getElementById('editLunch').value.trim();
+      const sn = document.getElementById('editSnacks').value.trim();
+      const d = document.getElementById('editDinner').value.trim();
+
+      if (!b && !l && !sn && !d) { alert('Please fill at least one meal to update.'); return; }
+
+      const changed = [];
+      if (b) { menuItem.b = b; changed.push('Breakfast'); }
+      if (l) { menuItem.l = l; changed.push('Lunch'); }
+      if (sn) { menuItem.s = sn; changed.push('Snacks'); }
+      if (d) { menuItem.d = d; changed.push('Dinner'); }
+
+      saveData();
+      renderMessMenuTables();
+      fillMessForm();
+      alert(`${day}: ${changed.join(', ')} updated!`);
+    }
+
+    // ---------- WARDEN: STUDENTS ----------
+    function handleAddNewStudent(e) {
+      e.preventDefault();
+      const name = document.getElementById('newStudName').value.trim();
+      const id = document.getElementById('newStudId').value.trim();
+      const password = document.getElementById('newStudPass').value;
+      const room = document.getElementById('newStudRoom').value.trim();
+      const contact = document.getElementById('newStudContact').value.trim();
+
+      if (!/^[A-Za-z0-9-]+$/.test(id)) { alert('Student ID can only contain letters, numbers and hyphens.'); return; }
+      if (studentDB.some(s => s.id.toLowerCase() === id.toLowerCase())) { alert(`Student ID "${id}" already exists!`); return; }
+
+      const today = getToday();
+      studentDB.push({
+        id, name, password, room, contact,
+        payments: [
+          { id: uid('RCT-'), type: 'Semester Mess Fee', amount: 25000, date: '30-10-2026', txnId: 'Pending', status: 'Pending' },
+          { id: uid('RCT-'), type: 'Semester Maintenance Fee', amount: 12500, date: '30-10-2026', txnId: 'Pending', status: 'Pending' }
+        ]
+      });
+
+      saveData();
+      alert(`Student ${name} (${id}) registered on ${today}!`);
+      e.target.reset();
+      renderAdminDashboard();
+      searchStudentHistory();
+    }
+
+    function handleAddWarden(e) {
+      e.preventDefault();
+      const name = document.getElementById('newWardName').value.trim();
+      const id = document.getElementById('newWardId').value.trim();
+      const password = document.getElementById('newWardPass').value;
+
+      if (!/^[A-Za-z0-9-]+$/.test(id)) { alert('Warden ID can only contain letters, numbers and hyphens.'); return; }
+      if (wardenDB.some(w => w.id.toLowerCase() === id.toLowerCase())) { alert(`Warden ID "${id}" already exists!`); return; }
+
+      wardenDB.push({ id, name, password });
+      saveData();
+      alert(`Warden ${name} (${id}) added!`);
+      e.target.reset();
+      renderWardenTable();
+    }
+
+    function deleteWarden(id) {
+      if (id === currentWardenId) { alert('You cannot delete the account you are logged in with.'); return; }
+      if (wardenDB.length <= 1) { alert('At least one warden account must remain.'); return; }
+      const w = wardenDB.find(x => x.id === id);
+      if (!w) return;
+      if (!confirm(`Delete warden "${w.name}" (${w.id})?`)) return;
+      wardenDB = wardenDB.filter(x => x.id !== id);
+      saveData();
+      renderWardenTable();
+    }
+
+    function renderWardenTable() {
+      document.getElementById('adminWardenTable').innerHTML = wardenDB.map(w => `
+        <tr>
+          <td><strong>${esc(w.id)}</strong></td>
+          <td>${esc(w.name)}${w.id === currentWardenId ? ' <span class="tag" style="margin-top:0;">You</span>' : ''}</td>
+          <td>${w.id === currentWardenId
+            ? '<span style="font-size:0.75rem; color:var(--text-muted);">Logged in</span>'
+            : `<button onclick="deleteWarden('${esc(w.id)}')" class="btn-delete">Delete</button>`}</td>
+        </tr>
+      `).join('');
+    }
+
+    function deleteStudent(id) {
+      const stud = studentDB.find(s => s.id === id);
+      if (!stud) return;
+      if (!confirm(`Delete student "${stud.name}" (${stud.id})?\n\nThis will also remove their payments, tickets and gate passes. This cannot be undone.`)) return;
+
+      studentDB = studentDB.filter(s => s.id !== id);
+      complaints = complaints.filter(c => c.studentId !== id);
+      gatePasses = gatePasses.filter(g => g.studentId !== id);
+      saveData();
+      renderAdminDashboard();
+      searchStudentHistory();
     }
 
     function searchStudentHistory() {
@@ -927,77 +1157,99 @@
       const results = studentDB.filter(s => s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query));
 
       if (results.length === 0) {
-        container.innerHTML = `<span style="color:var(--danger); font-weight:600;">No student match for "${query}".</span>`;
+        container.innerHTML = `<span style="color:var(--danger); font-weight:600;">No student match for "${esc(query)}".</span>`;
         return;
       }
-
       container.innerHTML = renderAllStudentsTable(results);
     }
 
     function renderAllStudentsTable(list) {
+      if (list.length === 0) return `<p style="margin-top:10px; color:var(--text-muted);">No students registered.</p>`;
       let html = '';
       list.forEach(stud => {
         html += `<div style="background:white; padding:1rem; border-radius:10px; border:1px solid var(--border); margin-top:10px;">`;
-        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">`;
-        html += `<div><strong>${stud.name}</strong> (${stud.id}) - <span style="color:var(--text-muted);">Room: ${stud.room}</span></div>`;
-        html += `<button onclick="alert('Fee reminder SMS sent to ${stud.name}')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--warning);">Send Fee Reminder</button>`;
-        html += `</div>`;
-        html += `<table style="margin-top:8px;"><thead><tr><th>Receipt ID</th><th>Fee Type</th><th>Amount</th><th>Status</th><th>Print Action</th></tr></thead><tbody>`;
-        
+        html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">`;
+        html += `<div><strong>${esc(stud.name)}</strong> (${esc(stud.id)}) - <span style="color:var(--text-muted);">Room: ${esc(stud.room)}</span></div>`;
+        html += `<div style="display:flex; gap:6px;">`;
+        html += `<button onclick="alert('Fee reminder SMS sent to ${esc(stud.name)}')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--warning);">Send Fee Reminder</button>`;
+        html += `<button onclick="deleteStudent('${esc(stud.id)}')" class="btn-delete">Delete Student</button>`;
+        html += `</div></div>`;
+        html += `<div style="overflow-x:auto;"><table style="margin-top:8px;"><thead><tr><th>Receipt ID</th><th>Fee Type</th><th>Amount</th><th>Status</th><th>Print Action</th></tr></thead><tbody>`;
+
         stud.payments.forEach(p => {
           html += `<tr>
-            <td><strong>${p.id}</strong></td>
-            <td>${p.type}</td>
-            <td>${p.amount}</td>
-            <td><span class="badge-status ${p.status === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${p.status}</span></td>
+            <td><strong>${esc(p.id)}</strong></td>
+            <td>${esc(p.type)}</td>
+            <td>${fmt(p.amount)}</td>
+            <td><span class="badge-status ${p.status === 'Paid' ? 'badge-paid' : 'badge-unpaid'}">${esc(p.status)}</span></td>
             <td>
-              ${p.status === 'Paid' ? `<button onclick="printReceiptModal('${stud.name}', '${stud.id}', '${p.type}', '${p.amount}', '${p.date}', '${p.id}', '${p.txnId}')" class="btn-pay" style="padding:3px 8px; font-size:0.7rem;">Print Slip</button>` : `<span style="font-size:0.75rem; color:var(--danger);">Pending</span>`}
+              ${p.status === 'Paid'
+                ? `<button onclick="printReceiptModal('${esc(stud.id)}', '${esc(p.id)}')" class="btn-pay" style="padding:3px 8px; font-size:0.7rem;">Print Slip</button>`
+                : `<span style="font-size:0.75rem; color:var(--danger);">Pending</span>`}
             </td>
           </tr>`;
         });
-        html += `</tbody></table></div>`;
+        html += `</tbody></table></div></div>`;
       });
       return html;
     }
 
+    // ---------- WARDEN: NOTICE / DASHBOARD ----------
     function handleBroadcastNotice(e) {
       e.preventDefault();
-      const text = document.getElementById('noticeInput').value;
-      document.getElementById('noticeBoardContainer').innerHTML = `<strong>📢 Notice [${todayDate}]:</strong> ${text}`;
-      alert("Notice broadcasted!");
+      notice = { text: document.getElementById('noticeInput').value.trim(), date: getToday() };
+      saveData();
+      alert('Notice broadcasted!');
       e.target.reset();
     }
 
     function renderAdminDashboard() {
+      renderWardenTable();
       document.getElementById('statStudents').textContent = studentDB.length;
       document.getElementById('statPasses').textContent = gatePasses.filter(g => g.status === 'Pending').length;
       document.getElementById('statPending').textContent = complaints.filter(c => c.status === 'Pending').length;
       document.getElementById('statResolved').textContent = complaints.filter(c => c.status === 'Resolved').length;
 
-      document.getElementById('adminGatePassTable').innerHTML = gatePasses.map(g => `
+      document.getElementById('adminStudentTable').innerHTML = studentDB.length === 0
+        ? `<tr><td colspan="5" style="color:var(--text-muted);">No students registered.</td></tr>`
+        : studentDB.map(s => `
         <tr>
-          <td><strong>${g.id}</strong></td>
-          <td>${g.studentName}</td>
-          <td>${g.date} (${g.returnTime})</td>
-          <td>${g.reason}</td>
-          <td><span class="badge-status ${g.status === 'Approved' ? 'badge-paid' : (g.status === 'Rejected' ? 'badge-unpaid' : 'badge-pending')}">${g.status}</span></td>
+          <td><strong>${esc(s.id)}</strong></td>
+          <td>${esc(s.name)}</td>
+          <td>${esc(s.room)}</td>
+          <td>${esc(s.contact)}</td>
+          <td><button onclick="deleteStudent('${esc(s.id)}')" class="btn-delete">Delete</button></td>
+        </tr>
+      `).join('');
+
+      document.getElementById('adminGatePassTable').innerHTML = gatePasses.length === 0
+        ? `<tr><td colspan="6" style="color:var(--text-muted);">No gate pass requests.</td></tr>`
+        : gatePasses.map(g => `
+        <tr>
+          <td><strong>${esc(g.id)}</strong></td>
+          <td>${esc(g.studentName)}</td>
+          <td>${esc(g.date)} (${esc(g.returnTime)})</td>
+          <td>${esc(g.reason)}</td>
+          <td><span class="badge-status ${passBadgeClass(g.status)}">${esc(g.status)}</span></td>
           <td>
-            <button onclick="updatePassStatus('${g.id}', 'Approved')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--success);">Approve</button>
-            <button onclick="updatePassStatus('${g.id}', 'Rejected')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--danger); margin-left:4px;">Reject</button>
+            <button onclick="updatePassStatus('${esc(g.id)}', 'Approved')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--success);">Approve</button>
+            <button onclick="updatePassStatus('${esc(g.id)}', 'Rejected')" class="btn-pay" style="padding:4px 8px; font-size:0.75rem; background:var(--danger); margin-left:4px;">Reject</button>
           </td>
         </tr>
       `).join('');
 
-      document.getElementById('adminTicketTable').innerHTML = complaints.map(t => `
+      document.getElementById('adminTicketTable').innerHTML = complaints.length === 0
+        ? `<tr><td colspan="7" style="color:var(--text-muted);">No maintenance tickets.</td></tr>`
+        : complaints.map(t => `
         <tr>
-          <td><strong>${t.id}</strong></td>
-          <td>${t.studentName} (${t.room})</td>
-          <td>${t.category}</td>
-          <td><span class="urgency-badge urgency-${t.urgency}">${t.urgency}</span></td>
-          <td>${t.description}</td>
-          <td><span class="status-badge status-${t.status.replace(/\s+/g, '')}">${t.status}</span></td>
+          <td><strong>${esc(t.id)}</strong></td>
+          <td>${esc(t.studentName)} (${esc(t.room)})</td>
+          <td>${esc(t.category)}</td>
+          <td><span class="urgency-badge urgency-${esc(t.urgency)}">${esc(t.urgency)}</span></td>
+          <td>${esc(t.description)}</td>
+          <td><span class="status-badge status-${t.status.replace(/\s+/g, '')}">${esc(t.status)}</span></td>
           <td>
-            <select onchange="updateTicketStatus('${t.id}', this.value)" class="form-control" style="padding:4px; font-size:0.75rem;">
+            <select onchange="updateTicketStatus('${esc(t.id)}', this.value)" class="form-control" style="padding:4px; font-size:0.75rem;">
               <option value="Pending" ${t.status === 'Pending' ? 'selected' : ''}>Pending</option>
               <option value="In Progress" ${t.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
               <option value="Resolved" ${t.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
@@ -1007,14 +1259,12 @@
       `).join('');
     }
 
-    // PERSIST STATUS UPDATES TO LOCALSTORAGE
     function updatePassStatus(id, newStatus) {
       const pass = gatePasses.find(g => g.id === id);
       if (pass) {
         pass.status = newStatus;
         saveData();
         renderAdminDashboard();
-        renderGatePasses();
       }
     }
 
@@ -1027,9 +1277,29 @@
       }
     }
 
-    // Initial setup
-    loadCurrentStudentData();
-    renderMessMenuTables();
+    // Extra safety: flush data when tab is hidden/closed
+    window.addEventListener('pagehide', saveData);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveData(); });
+
+    // ---------- INITIAL SETUP ----------
+    (function init() {
+      renderMessMenuTables();
+      let sess = null;
+      try { sess = JSON.parse(sessionStorage.getItem('hh3_session')); } catch (e) {}
+
+      if (sess && sess.role === 'warden' && wardenDB.some(w => w.id === sess.id)) {
+        currentRole = 'warden';
+        currentWardenId = sess.id;
+        showApp();
+      } else if (sess && sess.role === 'student' && studentDB.some(s => s.id === sess.id)) {
+        currentRole = 'student';
+        currentStudentId = sess.id;
+        showApp();
+      } else {
+        clearSession();
+        showLogin();
+      }
+    })();
   </script>
 </body>
 </html>
